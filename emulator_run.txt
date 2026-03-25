@@ -1,0 +1,51 @@
+# Commands to bring Android emulator online and run Flutter app
+
+## Step 1: Start Emulator
+& "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe" -avd Pixel_6a -no-boot-anim
+
+## Step 2: Wait for Boot Completion
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb wait-for-device
+while ((& $adb shell getprop sys.boot_completed).Trim() -ne "1") { Start-Sleep 2 }
+
+## Step 3: Verify Emulator is Online
+& $adb devices
+
+## Step 4: Run Flutter App
+flutter run -d emulator-5554
+
+
+# RECOVERY COMMANDS (if emulator is offline)
+
+## Kill and Restart ADB
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb kill-server
+& $adb start-server
+& $adb reconnect offline
+
+## Kill Emulator Process and Restart
+Get-Process -Name "qemu-system-x86*","emulator*" -ErrorAction SilentlyContinue | Stop-Process -Force
+& "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe" -avd Pixel_6a -no-boot-anim
+& $adb wait-for-device
+& $adb devices
+
+
+# Quick Reference
+
+List available emulators:
+& "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe" -list-avds
+
+Check connected devices:
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" devices
+
+Run Flutter on emulator:
+flutter run -d emulator-5554
+
+Hot reload (while app is running):
+Press 'r' in the terminal
+
+Hot restart:
+Press 'R' in the terminal
+
+Stop app:
+Press 'q' in the terminal

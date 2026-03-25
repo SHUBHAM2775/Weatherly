@@ -1,0 +1,59 @@
+name: weather_app
+description: Smart Weather Mobile Application - Weatherly
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # --- Networking ---
+  http: ^1.2.0                        # Makes API calls to weather servers
+
+  # --- Location ---
+  geolocator: ^11.0.0                 # Gets GPS coordinates
+  geocoding: ^3.0.0                   # Converts coordinates to city names
+
+  # --- Maps ---
+  flutter_map: ^6.1.0                 # Shows interactive maps
+  latlong2: ^0.9.0                    # Handles lat/lon coordinates for maps
+
+  # --- Date & Time ---
+  intl: ^0.20.2                       # Formats dates like "Monday, Jan 5"
+
+  # --- Storage ---
+  shared_preferences: ^2.2.3          # Saves user settings locally
+
+  # --- State Management ---
+  provider: ^6.1.2                    # Shares data between screens
+
+  # --- Notifications ---
+  flutter_local_notifications: ^17.1.2 # System tray & native notifications
+
+  # --- UI Extras ---
+  shimmer: ^3.0.0                     # Loading skeleton animations
+  permission_handler: ^11.3.1         # Asks for location permission
+
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/
+    - lib/l10n/
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/icons/WeatherSense.png
