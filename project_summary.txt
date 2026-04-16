@@ -1,0 +1,609 @@
+WEATHERLY PROJECT SUMMARY
+
+1. PROJECT OVERVIEW
+
+Project Name: Weatherly
+Description: A smart Flutter weather application that provides real-time weather data, air quality information, interactive map views, city search, travel planning support, user preferences, and localized UI support.
+Platform: Flutter cross-platform application
+Target platforms: Android, iOS, Web, Windows, Linux, macOS
+Current version: 1.0.0+1
+Core architecture: Model-View-Provider-Service style
+Primary state management: Provider
+Localization support: English, Hindi, Marathi
+
+Weatherly is designed around a simple app-start flow, centralized state management, and feature-based screens. The application starts by detecting the user's current location, fetching weather and AQI data, then displaying everything through a bottom navigation shell.
+
+2. HIGH-LEVEL ARCHITECTURE
+
+The app follows a layered flow:
+
+User Interaction
+  -> UI Screens
+  -> State Management Providers
+  -> Services
+  -> External APIs / Device Services
+  -> Parsed Models
+  -> UI Rendering
+
+Main app entry:
+- main.dart initializes Flutter bindings and launches WeatherApp.
+- MultiProvider injects WeatherProvider and LocaleProvider.
+- MaterialApp uses AppTheme.lightTheme.
+- SplashScreen is the first route shown.
+
+Main data and control layers:
+- WeatherProvider acts as the central brain for app weather state, AQI state, current location, user preferences, and refresh logic.
+- LocaleProvider stores and restores the selected app language.
+- WeatherService communicates with Open-Meteo weather and geocoding endpoints.
+- AqiService communicates with WAQI or falls back to demo AQI data.
+- LocationService manages GPS permission, coordinate lookup, and reverse geocoding.
+- NotificationService handles native AQI alert notifications.
+
+3. DEPENDENCIES AND PURPOSE
+
+Key packages used by the app:
+- http: API requests
+- geolocator: device GPS position and permission handling
+- geocoding: converts coordinates to location names
+- flutter_map: interactive map rendering
+- latlong2: latitude and longitude handling for maps
+- intl: date and time formatting
+- shared_preferences: persistent local settings
+- provider: state management
+- flutter_local_notifications: system notifications
+- shimmer: loading skeleton UI
+- permission_handler: permission prompts and permission utilities
+- flutter_localizations: localization support
+- cupertino_icons: platform style icons
+
+4. APP STARTUP FLOW
+
+The startup sequence is:
+1. App opens through main.dart.
+2. Flutter binding is initialized.
+3. WeatherApp is launched.
+4. Providers are created and injected.
+5. SplashScreen appears.
+6. SplashScreen begins animation.
+7. WeatherProvider fetches weather by current location.
+8. LocationService checks GPS and permissions.
+9. Device coordinates are acquired.
+10. Coordinates are reverse geocoded into city and country.
+11. WeatherService fetches current, hourly, and daily weather.
+12. AqiService fetches AQI data.
+13. WeatherProvider stores the combined data.
+14. The app navigates to MainScreen.
+15. The Home screen becomes the default tab.
+
+If any startup step fails, the app shows an error state and still transitions to the main shell after the splash delay.
+
+5. ROUTES AND SCREEN MAP
+
+The application does not use a large named-route table. Instead, it uses a simple route structure:
+
+- SplashScreen
+  First screen shown on app startup.
+
+- MainScreen
+  App shell that contains the bottom navigation bar and the feature screens.
+
+- HomeScreen
+  Default dashboard for current weather.
+
+- ForecastScreen
+  Detailed hourly and 7-day forecast.
+
+- AqiScreen
+  Air quality dashboard.
+
+- MapScreen
+  Interactive map with weather marker.
+
+- TravelScreen
+  Search screen for any city in the world.
+
+- SettingsScreen
+  User preferences and configuration.
+
+Navigation logic:
+- SplashScreen automatically replaces itself with MainScreen.
+- MainScreen uses IndexedStack to keep all screens alive while switching tabs.
+- TravelScreen performs its own independent data fetches and does not depend on the global WeatherProvider for result state.
+
+6. SCREEN-BY-SCREEN DETAIL
+
+6.1 SplashScreen
+Purpose:
+- Show the app identity and loading animation.
+- Hide initialization delay while location and weather data are being fetched.
+
+Behavior:
+- Uses AnimationController with fade and scale effects.
+- Waits briefly before loading data so the animation can play.
+- Calls WeatherProvider.fetchWeatherByLocation().
+- Displays status text such as detecting location or ready.
+- Navigates to MainScreen with a fade transition.
+
+User value:
+- Gives a clean app launch experience.
+- Prevents users from seeing empty app state during initialization.
+
+6.2 MainScreen
+Purpose:
+- Acts as the persistent shell for the app.
+- Hosts the bottom navigation bar.
+
+Tabs:
+- Home
+- Forecast
+- Air Quality
+- Map
+- Travel
+- Settings
+
+Implementation details:
+- Uses IndexedStack.
+- Keeps all screen states alive.
+- Prevents unnecessary rebuilds and re-fetches when users switch tabs.
+
+6.3 HomeScreen
+Purpose:
+- Main weather dashboard.
+
+Main content:
+- Large hero section with current temperature and weather condition.
+- Location display with city and country.
+- Humidity, wind, and feels-like cards.
+- Smart suggestion banner.
+- AQI mini card.
+- Horizontal hourly forecast.
+- Today min and max values.
+- Pull-to-refresh support.
+
+Data source:
+- WeatherProvider.weatherData
+- WeatherProvider.aqiData
+
+Behavior:
+- Rebuilds automatically when provider data changes.
+- Uses weather code to derive background gradient and icons.
+- Shows loading and error states when needed.
+
+6.4 ForecastScreen
+Purpose:
+- Present detailed forecast planning information.
+
+Main content:
+- Header with city name and title.
+- Horizontal 8-hour quick strip.
+- Full 7-day daily forecast list.
+
+Data shown per day:
+- Date
+- Maximum temperature
+- Minimum temperature
+- Weather condition
+- Precipitation sum
+- Wind speed and direction
+
+Data source:
+- WeatherProvider.weatherData.dailyForecast
+- WeatherProvider.weatherData.hourlyForecast
+
+6.5 AqiScreen
+Purpose:
+- Provide a complete air quality dashboard.
+
+Main content:
+- AQI value and category.
+- Color-coded header based on AQI severity.
+- Health recommendation text.
+- Pollutant breakdown bars.
+- Advice for children.
+- Advice for elderly users.
+- Advice for asthma-sensitive users.
+- 7-day AQI trend.
+
+Data source:
+- WeatherProvider.aqiData
+
+Computed behavior:
+- Uses AqiModel health recommendation helpers.
+- Colors are derived from AQI value.
+
+6.6 MapScreen
+Purpose:
+- Show the user's location and current weather on an interactive map.
+
+Main content:
+- OpenStreetMap view via flutter_map.
+- Location marker for the current coordinates.
+- Weather-based styling for marker appearance.
+- Popup details for the selected location.
+
+Weather-based styling:
+- Clear: amber and orange tones
+- Partly cloudy: light blue tones
+- Overcast: grey tones
+- Fog: silver and muted grey tones
+- Drizzle: steel blue tones
+- Rain: deep blue tones
+- Snow: cyan and white tones
+- Thunderstorm: dark charcoal tones
+
+Data source:
+- WeatherProvider current coordinates
+- WeatherProvider weather data
+
+6.7 TravelScreen
+Purpose:
+- Let the user search any city and view destination weather and AQI.
+
+Main content:
+- Search bar.
+- Debounced autocomplete suggestions.
+- GPS shortcut button.
+- Mini map for searched city.
+- Weather summary card.
+- AQI display.
+- Packing suggestions.
+- Forecast summary for destination.
+
+Search behavior:
+- User types a city name.
+- After a short debounce, the app fetches matching suggestions.
+- User can select a suggestion or submit a manual search.
+- WeatherService resolves the city to coordinates.
+- WeatherService and AqiService fetch destination data.
+
+Important note:
+- TravelScreen uses its own local state.
+- It does not overwrite the main app's global weather state.
+
+6.8 SettingsScreen
+Purpose:
+- Give the user control over preferences and application behavior.
+
+Settings available:
+- Temperature unit: Celsius or Fahrenheit.
+- Wind speed unit: km/h, m/s, or mph.
+- Notifications: enabled or disabled.
+- AQI alert threshold.
+- Language selection.
+
+Data persisted in SharedPreferences:
+- temperature unit
+- wind unit
+- notifications setting
+- AQI threshold
+- selected locale
+
+Behavior:
+- Temperature changes trigger weather refresh.
+- Notification toggle affects AQI alert behavior.
+- Language selection updates text throughout the app.
+
+7. SERVICES DETAIL
+
+7.1 WeatherProvider
+Role:
+- Central application state manager.
+
+Responsibilities:
+- Stores current weather and AQI data.
+- Stores current coordinates and city details.
+- Tracks loading and error state.
+- Manages temperature unit, wind unit, notification state, and AQI threshold.
+- Coordinates refresh and fetch actions.
+- Triggers notifications when AQI exceeds threshold.
+
+Important methods:
+- fetchWeatherByLocation()
+- fetchWeatherByCity(city)
+- refresh()
+- setTemperatureUnit(celsius)
+- setNotifications(enabled)
+- convertWindSpeed(windSpeedKmh)
+
+7.2 WeatherService
+Role:
+- Weather and geocoding API client.
+
+Responsibilities:
+- Fetch current weather, hourly forecast, and daily forecast.
+- Resolve a city name into latitude and longitude.
+- Provide city suggestions for autocomplete.
+
+Open-Meteo endpoints used:
+- Forecast API
+- Geocoding API
+
+7.3 AqiService
+Role:
+- AQI API client and AQI fallback generator.
+
+Responsibilities:
+- Fetch AQI by geographic coordinates.
+- Parse pollutant values.
+- Find the primary pollutant.
+- Generate demo data if the real API fails.
+
+Behavior:
+- Tries the WAQI API when a token is configured.
+- Falls back to generated realistic AQI data if the network request fails.
+
+7.4 LocationService
+Role:
+- Device location and reverse geocoding service.
+
+Responsibilities:
+- Check if GPS services are enabled.
+- Check and request location permission.
+- Read current device coordinates.
+- Convert coordinates to a city name and country code.
+
+Error cases handled:
+- Location services disabled
+- Permission denied
+- Permission denied forever
+- Geocoding failure
+
+7.5 NotificationService
+Role:
+- Native notification handling.
+
+Responsibilities:
+- Initialize platform notifications.
+- Request permission on Android and iOS.
+- Show AQI alert notifications when required.
+
+7.6 LocaleProvider
+Role:
+- App language state manager.
+
+Responsibilities:
+- Store selected locale.
+- Load locale from SharedPreferences on startup.
+- Save locale changes.
+
+Supported languages:
+- English
+- Hindi
+- Marathi
+
+8. DATA MODELS
+
+8.1 WeatherModel
+Represents the complete weather payload for the current location or selected city.
+Fields:
+- temperature
+- feelsLike
+- tempMin
+- tempMax
+- humidity
+- windSpeed
+- windDirection
+- weatherCode
+- condition
+- description
+- cityName
+- country
+- timestamp
+- hourlyForecast
+- dailyForecast
+
+8.2 HourlyForecast
+Represents one hourly forecast record.
+Fields:
+- time
+- temperature
+- weatherCode
+- humidity
+- windSpeed
+- windDirection
+
+8.3 DailyForecast
+Represents one daily forecast record.
+Fields:
+- date
+- tempMax
+- tempMin
+- weatherCode
+- precipitationSum
+- windSpeedMax
+- windDirection
+
+8.4 AqiModel
+Represents the full AQI payload.
+Fields:
+- aqi
+- category
+- mainPollutant
+- cityName
+- timestamp
+- pollutants
+- forecast
+- windDirection
+
+Computed advice:
+- healthRecommendation
+- childrenAdvice
+- elderlyAdvice
+- asthmaAdvice
+
+8.5 AqiForecast
+Represents one day in the AQI forecast trend.
+Fields:
+- date
+- avgAqi
+- category
+
+9. API AND DATA SOURCES
+
+9.1 Open-Meteo Weather API
+No API key required.
+
+Forecast endpoint:
+- Provides current weather, hourly forecast, and daily forecast.
+- Used for app startup weather data and travel city weather.
+
+Geocoding endpoint:
+- Converts a city name into coordinates.
+- Used for travel search and autocomplete.
+
+Returned data includes:
+- temperature
+- humidity
+- apparent temperature
+- weather code
+- wind speed
+- wind direction
+- hourly time series
+- daily summary series
+
+9.2 WAQI Air Quality API
+Requires a free token for real data.
+
+Behavior:
+- If configured correctly, the app fetches real AQI data.
+- If the call fails, the app falls back to mock AQI data so the UI still works.
+
+Returned data includes:
+- AQI score
+- city name
+- pollutant values
+- forecast trend
+
+9.3 Weather Code Mapping
+The app uses WMO weather codes and maps them into labels and icons.
+
+Main code groups:
+- 0: clear sky
+- 1 to 2: mainly clear or partly cloudy
+- 3: overcast
+- 45 to 48: fog
+- 51 to 59: drizzle
+- 61 to 67: rain
+- 71 to 77: snow
+- 80 to 82: rain showers
+- 85 to 86: snow showers
+- 95 to 99: thunderstorm
+
+10. UI DATA FLOW
+
+The primary data path is:
+
+App launch
+  -> SplashScreen
+  -> WeatherProvider fetches location
+  -> LocationService gets GPS coordinates
+  -> WeatherService fetches weather data
+  -> AqiService fetches AQI data
+  -> WeatherProvider stores both results
+  -> UI screens read provider state
+  -> Screens render weather, AQI, and settings
+
+Secondary flows:
+- TravelScreen fetches city-based weather independently.
+- SettingsScreen updates stored preferences and causes provider refreshes.
+- LocaleProvider updates app language immediately.
+
+11. PERSISTENT SETTINGS
+
+SharedPreferences stores the following values:
+- temperature unit
+- wind unit
+- notifications enabled state
+- AQI threshold
+- selected locale
+
+These settings are loaded at startup and kept across app restarts.
+
+12. ERROR HANDLING AND FALLBACKS
+
+Known error cases:
+- GPS is off
+- Location permission denied
+- Location permission denied forever
+- Network request failure
+- City not found
+- AQI API failure
+- Reverse geocoding failure
+
+Fallback behavior:
+- Display user-friendly error text.
+- Keep coordinates even if city name lookup fails.
+- Use mock AQI data if WAQI fails.
+- Keep app shell visible after splash even when startup data fails.
+
+13. NOTIFICATIONS
+
+AQI alerts are supported through native system notifications.
+
+Trigger behavior:
+- Notifications are shown if notifications are enabled.
+- AQI must exceed the selected threshold.
+- The notification service checks platform permissions before showing the alert.
+
+14. THEME AND VISUAL STYLE
+
+The app theme is defined in AppTheme.
+
+Brand colors:
+- primary blue
+- deep blue
+- accent yellow
+- light background
+- primary text color
+- secondary text color
+
+Design style:
+- Rounded cards
+- Gradient headers
+- Light, airy backgrounds
+- Weather-based color gradients
+- Clean Material 3 appearance
+
+15. LOCALIZATION
+
+The app supports three languages:
+- English
+- Hindi
+- Marathi
+
+Localization covers:
+- screen titles
+- labels
+- units
+- error messages
+- advice text
+- navigation labels
+
+16. PROJECT STRUCTURE
+
+Main folders and purpose:
+- lib/main.dart: app entry point
+- lib/models/: weather and AQI models
+- lib/services/: API, location, notification, locale, and provider logic
+- lib/screens/: full UI screens
+- lib/widgets/: reusable UI components
+- lib/utils/: helper logic and weather mappings
+- lib/theme/: theme and styling definitions
+- lib/l10n/: localization resources
+
+17. COMPLETE FEATURE SUMMARY
+
+Weatherly includes:
+- Current weather on app launch
+- Hourly and daily forecasts
+- AQI monitoring and pollutant details
+- GPS-based location detection
+- Manual city search and travel planning
+- Interactive map view
+- Local notifications for AQI alerts
+- User settings for units, notifications, and language
+- Persistent preferences
+- Multi-language support
+- Clean responsive Flutter UI
+
+END OF SUMMARY
