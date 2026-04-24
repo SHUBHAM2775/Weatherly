@@ -12,6 +12,7 @@ import '../services/weather_service.dart';
 import '../services/aqi_service.dart';
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
+import '../services/groq_service.dart';
 
 enum LoadingState { idle, loading, success, error }
 
@@ -45,6 +46,9 @@ class WeatherProvider extends ChangeNotifier {
   int    notificationTestAqi = 150;
 
   bool _aqiAlertActive = false;
+  String? aiSuggestion;
+  String? aqiAiSuggestion;
+  bool aiSuggestionLoading = false;
 
   String get tempSymbol => isCelsius ? '°C' : '°F';
 
@@ -124,6 +128,25 @@ class WeatherProvider extends ChangeNotifier {
       
       weatherData  = weather;
       aqiData      = aqi;
+      aiSuggestionLoading = true;
+      notifyListeners();
+      try {
+        aiSuggestion = await GroqService.getSuggestion(
+          weatherCode: weather.weatherCode,
+          humidity: weather.humidity,
+          aqi: aqi.aqi,
+          city: _cityName,
+        );
+        aqiAiSuggestion = await GroqService.getAqiSuggestion(
+          aqi: aqi.aqi,
+          humidity: weather.humidity,
+          city: _cityName,
+        );
+      } catch (_) {
+        aiSuggestion = null;
+        aqiAiSuggestion = null;
+      }
+      aiSuggestionLoading = false;
       _checkAqiAlertTrigger();
       loadingState = LoadingState.success;
       notifyListeners();

@@ -33,6 +33,9 @@ todo.txt
 .pub/
 /build/
 /coverage/
+.env
+.env.*
+!.env.example
 
 # Symbolication related
 app.*.symbols

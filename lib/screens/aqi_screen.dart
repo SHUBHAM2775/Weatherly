@@ -105,12 +105,13 @@ class AqiScreen extends StatelessWidget {
                       aqi.aqi, aqiColor, aqi.category, aqi.mainPollutant, l10n),
                   const SizedBox(height: 16),
 
-                  // Wind direction card
-                  _buildWindDirectionCard(aqi.windDirection, l10n),
-                  const SizedBox(height: 16),
-
                   // Health advice banner
-                  _buildHealthBanner(aqi.healthRecommendation, aqiColor, l10n),
+                  if (provider.aiSuggestionLoading)
+                    _buildHealthBanner('Loading AI tip...', aqiColor, l10n)
+                  else if (provider.aqiAiSuggestion != null)
+                    _buildHealthBanner(provider.aqiAiSuggestion!, aqiColor, l10n)
+                  else
+                    _buildHealthBanner(aqi.healthRecommendation, aqiColor, l10n),
                   const SizedBox(height: 20),
 
                   // Pollutant breakdown
@@ -123,24 +124,14 @@ class AqiScreen extends StatelessWidget {
                   _buildPollutants(aqi.pollutants),
                   const SizedBox(height: 20),
 
-                  // Sensitive groups
-                  Text(l10n.sensitiveGroups,
+                    // Pollutant-specific tip
+                    Text('Pollutant-Specific Tip',
                       style: const TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 12),
-                  _buildGroupCard(Icons.child_care_rounded, l10n.children,
-                      aqi.childrenAdvice, const Color(0xFF26A69A)),
-                  const SizedBox(height: 10),
-                  _buildGroupCard(Icons.elderly_rounded, l10n.elderly,
-                      aqi.elderlyAdvice, const Color(0xFF7E57C2)),
-                  const SizedBox(height: 10),
-                  _buildGroupCard(
-                      Icons.medical_services_rounded,
-                      l10n.asthmaRespiratory,
-                      aqi.asthmaAdvice,
-                      const Color(0xFFEF5350)),
+                        color: AppTheme.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 12),
+                    _buildPollutantTipCard(aqi.mainPollutant, aqi.aqi),
                   const SizedBox(height: 20),
 
                   // 7-day AQI forecast
@@ -165,6 +156,7 @@ class AqiScreen extends StatelessWidget {
   // ------ Big AQI number with colour scale bar ------
   Widget _buildAqiGauge(int aqiVal, Color color, String category,
       String pollutant, AppLocalizations l10n) {
+    final readableAccent = WeatherUtils.getReadableAqiAccentColor(color);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -182,7 +174,7 @@ class AqiScreen extends StatelessWidget {
                 children: [
                   Text('$aqiVal',
                       style: TextStyle(
-                          color: color,
+                        color: readableAccent,
                           fontSize: 72,
                           fontWeight: FontWeight.w200,
                           height: 1)),
@@ -205,13 +197,14 @@ class AqiScreen extends StatelessWidget {
                   children: [
                     Text(category,
                         style: TextStyle(
-                            color: color,
+                            color: readableAccent,
                             fontSize: 14,
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 3),
                     Text('${l10n.mainPollutant} $pollutant',
                         style: TextStyle(
-                            color: color.withOpacity(0.8), fontSize: 11)),
+                            color: readableAccent.withOpacity(0.85),
+                            fontSize: 11)),
                   ],
                 ),
               ),
@@ -267,66 +260,26 @@ class AqiScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.health_and_safety_rounded, color: color, size: 22),
+          const Icon(Icons.health_and_safety_rounded,
+              color: AppTheme.textPrimary, size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.healthRecommendation,
-                    style: TextStyle(
-                        color: color,
+                Text('AI Suggestion',
+                    style: const TextStyle(
+                        color: AppTheme.textPrimary,
                         fontSize: 13,
                         fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 Text(advice,
-                    style: TextStyle(
-                        color: color.withOpacity(0.85),
-                        fontSize: 13,
-                        height: 1.4)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWindDirectionCard(int windDirection, AppLocalizations l10n) {
-    final direction = WeatherUtils.getWindDirection(windDirection);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [AppTheme.cardShadow],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: const Color(0xFF26A69A).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.air_rounded,
-                color: const Color(0xFF26A69A), size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(l10n.windDirection,
                     style: const TextStyle(
                         color: AppTheme.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600)),
-                const SizedBox(height: 2),
-                Text('$direction (${windDirection}°)',
-                    style: const TextStyle(
-                        color: AppTheme.textSecondary, fontSize: 13)),
+                        fontSize: 13,
+                        height: 1.4),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -338,14 +291,16 @@ class AqiScreen extends StatelessWidget {
   Widget _buildPollutants(Map<String, double> pollutants) {
     // Reference limits for each pollutant (µg/m³)
     const limits = {
-      'CO2': 1000.0,
+      'PM2.5': 35.0,
+      'PM10': 50.0,
       'CO': 4.0,
       'SO2': 35.0,
       'NO2': 53.0,
+      'O3': 100.0,
     };
 
     // Keep only the specified pollutants in the specified order
-    final orderedKeys = ['CO2', 'CO', 'SO2', 'NO2'];
+    final orderedKeys = ['PM2.5', 'PM10', 'NO2', 'SO2', 'CO', 'O3'];
     final filteredPollutants = <String, double>{};
 
     for (final key in orderedKeys) {
@@ -413,8 +368,10 @@ class AqiScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGroupCard(
-      IconData icon, String label, String advice, Color color) {
+  Widget _buildPollutantTipCard(String mainPollutant, int aqi) {
+    final severityColor = WeatherUtils.getAqiColor(aqi);
+    final tip = _getPollutantTip(mainPollutant, aqi);
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -423,36 +380,113 @@ class AqiScreen extends StatelessWidget {
         boxShadow: [AppTheme.cardShadow],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: severityColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: color, size: 22),
+            child: Icon(Icons.science_rounded, color: severityColor, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: const TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600)),
-                const SizedBox(height: 2),
-                Text(advice,
-                    style: const TextStyle(
-                        color: AppTheme.textSecondary, fontSize: 13)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Main pollutant: ${mainPollutant.toUpperCase()}',
+                        style: const TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildSeverityChip(aqi, severityColor),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  tip,
+                  style: const TextStyle(
+                      color: AppTheme.textSecondary, fontSize: 13, height: 1.3),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildSeverityChip(int aqi, Color color) {
+    final readableAccent = WeatherUtils.getReadableAqiAccentColor(color);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        _getSeverityLabel(aqi),
+        style: TextStyle(
+            color: readableAccent, fontSize: 11, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+
+  String _getSeverityLabel(int aqi) {
+    if (aqi <= 50) return 'Good';
+    if (aqi <= 100) return 'Moderate';
+    if (aqi <= 150) return 'USG';
+    if (aqi <= 200) return 'Unhealthy';
+    if (aqi <= 300) return 'Very Unhealthy';
+    return 'Hazardous';
+  }
+
+  String _getPollutantTip(String pollutant, int aqi) {
+    final normalized = pollutant.toUpperCase().replaceAll('.', '').trim();
+    final highRisk = aqi > 150;
+
+    final tips = <String, String>{
+      'PM25': highRisk
+          ? 'Wear a mask outdoors and keep windows closed during peak traffic hours.'
+          : 'Avoid heavy traffic routes and ventilate rooms when outdoor air looks clear.',
+      'PM10': highRisk
+          ? 'Limit outdoor workouts and rinse face after returning indoors.'
+          : 'Reduce dust exposure and avoid outdoor exercise near construction areas.',
+      'O3': highRisk
+          ? 'Avoid afternoon outdoor activity and exercise indoors if possible.'
+          : 'Prefer morning walks and reduce intense activity in direct sunlight.',
+      'NO2': highRisk
+          ? 'Stay away from busy roads and keep children indoors during rush hours.'
+          : 'Choose low-traffic streets and avoid long roadside exposure.',
+      'SO2': highRisk
+          ? 'Keep rescue medication nearby and avoid outdoor exertion today.'
+          : 'If breathing feels irritated, move indoors and rest.',
+      'CO': highRisk
+          ? 'Avoid enclosed parking areas and ensure indoor ventilation.'
+          : 'Keep indoor spaces ventilated and avoid lingering near vehicle exhaust.',
+      'CO2': highRisk
+          ? 'Increase room ventilation and avoid crowded indoor spaces for long periods.'
+          : 'Open windows periodically to refresh indoor air.',
+    };
+
+    return tips[normalized] ??
+        (highRisk
+            ? 'Air quality is elevated. Reduce outdoor activity and keep windows closed.'
+            : 'Air quality is manageable. Prefer light outdoor activity and stay hydrated.');
   }
 
   Widget _buildAqiForecastList(dynamic aqi, AppLocalizations l10n) {
@@ -468,6 +502,7 @@ class AqiScreen extends StatelessWidget {
           final i = e.key;
           final f = e.value;
           final color = WeatherUtils.getAqiColor(f.avgAqi);
+          final readableAccent = WeatherUtils.getReadableAqiAccentColor(color);
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
@@ -497,7 +532,7 @@ class AqiScreen extends StatelessWidget {
                   child: Text(
                     '${f.avgAqi} ${f.category.split(' ').first}',
                     style: TextStyle(
-                        color: color,
+                    color: readableAccent,
                         fontSize: 11,
                         fontWeight: FontWeight.w600),
                   ),

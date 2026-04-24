@@ -152,6 +152,13 @@ class WeatherUtils {
     return const Color(0xFF7B1FA2); // maroon
   }
 
+  /// Keeps AQI accent in the same hue family but darkens very light colors
+  /// (notably yellow) for text readability.
+  static Color getReadableAqiAccentColor(Color color) {
+    if (color.computeLuminance() <= 0.6) return color;
+    return Color.alphaBlend(Colors.black.withOpacity(0.35), color);
+  }
+
   /// Returns the AQI category label
   static String getAqiCategory(int aqi) {
     if (aqi <= 50) return 'Good';

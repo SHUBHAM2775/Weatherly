@@ -83,14 +83,19 @@ class HomeScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Smart suggestion banner
-                      SmartSuggestionBanner(
-                        suggestion: WeatherUtils.getSmartSuggestionLocalized(
-                          weather.weatherCode,
-                          weather.humidity,
-                          aqi?.aqi,
-                          l10n,
+                      if (provider.aiSuggestionLoading)
+                        const SmartSuggestionBanner(suggestion: 'Loading AI suggestion...')
+                      else if (provider.aiSuggestion != null)
+                        SmartSuggestionBanner(suggestion: provider.aiSuggestion!)
+                      else
+                        SmartSuggestionBanner(
+                          suggestion: WeatherUtils.getSmartSuggestionLocalized(
+                            weather.weatherCode,
+                            weather.humidity,
+                            aqi?.aqi,
+                            l10n,
+                          ),
                         ),
-                      ),
 
                       const SizedBox(height: 20),
 

@@ -175,6 +175,7 @@ class AqiMiniCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final color = WeatherUtils.getAqiColor(aqi.aqi);
+    final readableColor = WeatherUtils.getReadableAqiAccentColor(color);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -196,7 +197,9 @@ class AqiMiniCard extends StatelessWidget {
               child: Text(
                 '${aqi.aqi}',
                 style: TextStyle(
-                    color: color, fontSize: 18, fontWeight: FontWeight.w800),
+                    color: readableColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800),
               ),
             ),
           ),
@@ -211,7 +214,7 @@ class AqiMiniCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(aqi.category,
                     style: TextStyle(
-                        color: color,
+                    color: readableColor,
                         fontSize: 16,
                         fontWeight: FontWeight.w700)),
                 Text('${l10n.mainPollutant} ${aqi.mainPollutant}',

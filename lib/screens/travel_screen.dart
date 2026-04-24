@@ -544,11 +544,6 @@ class _TravelScreenState extends State<TravelScreen> {
         // === AQI CARD ===
         if (_aqi != null) _buildAqiCard(),
 
-        const SizedBox(height: 14),
-
-        // === TRAVEL TIPS ===
-        _buildTravelTips(),
-
         const SizedBox(height: 20),
 
         // === 5-DAY FORECAST ===
@@ -729,16 +724,18 @@ class _TravelScreenState extends State<TravelScreen> {
     final l10n = AppLocalizations.of(context)!;
     final aqi = _aqi!;
     final color = WeatherUtils.getAqiColor(aqi.aqi);
+    final readableColor = WeatherUtils.getReadableAqiAccentColor(color);
 
     // Pollutant reference limits for progress bars
     const limits = {
-      'CO2': 1000.0,
+      'PM2.5': 35.0,
+      'PM10': 50.0,
       'CO': 4.0,
       'SO2': 35.0,
       'NO2': 53.0,
     };
 
-    final orderedKeys = ['CO2', 'CO', 'SO2', 'NO2'];
+    final orderedKeys = ['PM2.5', 'PM10', 'CO', 'SO2', 'NO2'];
     final orderedPollutants = <MapEntry<String, double>>[];
     for (final key in orderedKeys) {
       final matchKey = aqi.pollutants.keys.firstWhere(
@@ -788,7 +785,7 @@ class _TravelScreenState extends State<TravelScreen> {
                   child: Center(
                     child: Text('${aqi.aqi}',
                         style: TextStyle(
-                            color: color,
+                            color: readableColor,
                             fontSize: 22,
                             fontWeight: FontWeight.w800)),
                   ),
@@ -806,16 +803,17 @@ class _TravelScreenState extends State<TravelScreen> {
                       const SizedBox(height: 2),
                       Text(aqi.category,
                           style: TextStyle(
-                              color: color,
+                              color: readableColor,
                               fontSize: 18,
                               fontWeight: FontWeight.w800)),
                       const SizedBox(height: 2),
                       Row(children: [
-                        Icon(Icons.circle, color: color, size: 8),
+                        Icon(Icons.circle, color: readableColor, size: 8),
                         const SizedBox(width: 5),
                         Text('${l10n.mainPollutant} ${aqi.mainPollutant}',
                             style: TextStyle(
-                                color: color.withOpacity(0.8), fontSize: 12)),
+                                color: readableColor.withOpacity(0.85),
+                                fontSize: 12)),
                       ]),
                     ],
                   ),
@@ -830,7 +828,8 @@ class _TravelScreenState extends State<TravelScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.health_and_safety_rounded, color: color, size: 18),
+                Icon(Icons.health_and_safety_rounded,
+                    color: readableColor, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(

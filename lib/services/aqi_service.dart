@@ -12,13 +12,13 @@
 
 import 'dart:convert';
 import 'dart:math';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/aqi_model.dart';
 import '../utils/weather_utils.dart';
 
 class AqiService {
-  // 👇 REPLACE THIS with your token from https://aqicn.org/api/
-  static const String _apiToken = '5f9d2815a53ca9b6b29a03c7865b3b7a3e3f7f2e';
+  static String get _apiToken => dotenv.env['WAQI_API_TOKEN'] ?? 'YOUR_WAQI_API_TOKEN';
 
   static const String _baseUrl = 'https://api.waqi.info';
 
